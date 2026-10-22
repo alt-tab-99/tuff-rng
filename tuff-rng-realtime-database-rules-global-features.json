@@ -1,0 +1,22 @@
+{
+  "rules": {
+    "globalAdminAbuse": {
+      "current": {
+        ".read": true,
+        ".write": "auth != null && auth.uid === 'e1vRIkpuIpfyw3jO9iosgfpdjD43'"
+      },
+      "petStock": {
+        "override": {
+          ".read": true,
+          ".write": "auth != null && auth.uid === 'e1vRIkpuIpfyw3jO9iosgfpdjD43'"
+        }
+      },
+      "messages": {
+        "current": {
+          ".read": true,
+          ".write": "auth != null && auth.uid === 'e1vRIkpuIpfyw3jO9iosgfpdjD43'"
+        }
+      }
+    }
+  }
+}
