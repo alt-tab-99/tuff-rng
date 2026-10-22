@@ -1262,23 +1262,6 @@
   <input id="indexSearch" type="search" placeholder="Search items by name, rarity, or odds…" style="width:100%;margin-bottom:12px">
   <div class="grid" id="grid"></div>
 
-  <section class="omni-panel" aria-label="Global Admin Abuse controls" style="border:2px solid #bd83ff;margin-top:24px">
-        <div id="globalAbuseAdmin" style="display:none;margin-top:18px;padding:14px;border:2px solid #bd83ff;border-radius:14px;background:linear-gradient(135deg,#140c27,#24113a)">
-          <h3 style="margin:0 0 8px;color:#e5caff">🌌 GLOBAL ADMIN ABUSE</h3>
-          <p style="margin:0 0 10px;color:#d8c9f4">Starts a shared 15-minute event for every connected Tuff RNG player. Sign in to the cloud-save panel with your designated admin account. Firebase rules must authorize its UID.</p>
-          <label>Event announcement <input id="abuseAnnouncement" maxlength="100" value="THE ADMIN HAS ARRIVED!" style="width:100%"></label>
-          <label style="display:block;margin-top:10px">🌍 Global luck multiplier (×1–×1000)
-            <input id="abuseLuckMultiplier" type="number" min="1" max="1000" step="1" value="5" style="width:100%">
-          </label>
-          <p class="note" style="margin:5px 0 0">This luck boost applies to the shared 15-minute event for all connected players.</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-            <button id="abuseStart" style="border-color:#d6a7ff">🚨 Activate Global Admin Abuse (15 min)</button>
-            <button id="abuseStop">🛑 End Global Event</button>
-          </div>
-          <p id="abuseAdminStatus" class="note" aria-live="polite">Waiting for Firebase connection…</p>
-        </div>
-  </section>
-
   <section id="adminPanel" class="omni-panel" style="display:none;margin-top:24px;border:2px solid #ffcf70">
     <div class="omni-title">👑 TUFF RNG ADMIN PANEL</div>
     <p class="note">Admin tools affect your local saved game.</p>
@@ -1310,11 +1293,26 @@
         <button id="adminAllPets">Give every pet (level 1)</button>
         <button id="adminAllPotions">Give 99 of every potion</button>
         <button id="adminOmni">Toggle Omniverse Mode</button>
-
+        
         <button id="adminClose">Lock Admin Panel</button>
       </div>
     </div>
   </section>
+  <div id="globalAbuseAdmin" style="display:block;margin:18px 0;padding:16px;border:2px solid #bd83ff;border-radius:14px;background:linear-gradient(135deg,#140c27,#24113a);box-shadow:0 0 20px #9b4dff33">
+          <h3 style="margin:0 0 8px;color:#e5caff">🌌 GLOBAL ADMIN ABUSE</h3>
+          <p style="margin:0 0 10px;color:#d8c9f4">Shared 15-minute event for every connected Tuff RNG player. Sign in with your authorized admin account in the Cloud Save panel to unlock these controls.</p>
+          <p id="abuseAuthStatus" class="note" style="margin:6px 0 10px;color:#ffe0a8" aria-live="polite">Checking admin sign-in…</p>
+          <label>Event announcement <input id="abuseAnnouncement" maxlength="100" value="THE ADMIN HAS ARRIVED!" style="width:100%" disabled></label>
+          <label style="display:block;margin-top:10px">🌍 Global luck multiplier (×1–×1000)
+            <input id="abuseLuckMultiplier" type="number" min="1" max="1000" step="1" value="5" style="width:100%" disabled>
+          </label>
+          <p class="note" style="margin:5px 0 0">This luck boost applies to the shared 15-minute event for all connected players.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            <button id="abuseStart" style="border-color:#d6a7ff" disabled>🚨 Activate Global Admin Abuse (15 min)</button>
+            <button id="abuseStop" disabled>🛑 End Global Event</button>
+          </div>
+          <p id="abuseAdminStatus" class="note" aria-live="polite">Waiting for Firebase connection…</p>
+        </div>
   <footer>
     <button id="btnAdmin" style="border-color:#ffcf70">👑 Admin Panel</button>
     <button id="btnReset">Reset progress</button>
@@ -3154,6 +3152,7 @@ Rarest: ${m.best||"Nothing yet"}`;
   const EVENT_DURATION=15*60*1000;
   const DEFAULT_LUCK=5;
   const DEFAULT_REWARD=25000;
+  const ADMIN_UID="e1vRIkpuIpfyw3jO9iosgfpdjD43";
   const $id=id=>document.getElementById(id);
   const banner=$id("tuffGlobalAbuseBanner"), chaos=$id("tuffGlobalAbuseChaos"), cutscene=$id("tuffGlobalAbuseCutscene");
   let eventRef=null, currentEvent=null, countdownTimer=null, seenEventId=null;
@@ -3204,9 +3203,23 @@ Rarest: ${m.best||"Nothing yet"}`;
   }
   function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
   function getAdminUid(){return window.__tuffAdminAbuseAdminUid||""}
+  function setAdminUiAccess(user){
+    const allowed=!!user&&!user.isAnonymous&&user.uid===ADMIN_UID;
+    window.__tuffAdminAbuseAdminUid=user?user.uid:"";
+    const authStatus=$id("abuseAuthStatus");
+    ["abuseStart","abuseStop","abuseAnnouncement","abuseLuckMultiplier"].forEach(id=>{const el=$id(id);if(el)el.disabled=!allowed;});
+    if(authStatus){
+      if(allowed){authStatus.textContent="✅ Admin account verified. Global controls are unlocked.";authStatus.style.color="#a8ffd2";}
+      else if(user&&user.isAnonymous){authStatus.textContent="🔒 Signed in anonymously. Sign in with your admin email/password in Cloud Save.";authStatus.style.color="#ffe0a8";}
+      else if(user){authStatus.textContent="🔒 Signed in, but this account is not authorized for Global Admin Abuse.";authStatus.style.color="#ffaaaa";}
+      else {authStatus.textContent="🔒 Sign in with your authorized admin account in the Cloud Save panel.";authStatus.style.color="#ffe0a8";}
+    }
+  }
   async function setup(){
-    if(typeof firebase==="undefined"||!firebase.apps||!firebase.apps.length){status("Firebase is not configured yet. Finish the Firebase setup first.",true);return}
+    if(typeof firebase==="undefined"||!firebase.apps||!firebase.apps.length){status("Firebase is not initialized. Reload after the game finishes loading.",true);return}
     const auth=firebase.auth(), db=firebase.database();
+    setAdminUiAccess(auth.currentUser);
+    auth.onAuthStateChanged(user=>setAdminUiAccess(user));
     eventRef=db.ref(EVENT_PATH);
     // Listen to the shared event independently of private-room membership.
     eventRef.on("value",snap=>{
@@ -3214,20 +3227,9 @@ Rarest: ${m.best||"Nothing yet"}`;
       if(ev&&ev.status==="active")status("Live event active. Connected players receive the same event state.");
       else status("Connected to global event feed. No event is running.");
     },err=>status("Event feed error: "+err.message,true));
-    const ADMIN_UID="e1vRIkpuIpfyw3jO9iosgfpdjD43";
-    const adminPanel=$id("globalAbuseAdmin");
-    const applyAdminAuth=user=>{
-      const isAdmin=!!user && user.uid===ADMIN_UID;
-      window.__tuffAdminAbuseAdminUid=isAdmin?user.uid:"";
-      if(adminPanel)adminPanel.style.display=isAdmin?"block":"none";
-      if(isAdmin)status("Signed in as the authorized admin. Global event controls are ready.");
-      else status(user?"Signed in, but this account is not authorized for Global Admin Abuse.":"Sign in using your admin account in the Cloud Save panel to reveal Global Admin Abuse controls.");
-    };
-    applyAdminAuth(auth.currentUser);
-    auth.onAuthStateChanged(applyAdminAuth);
     $id("abuseStart").addEventListener("click",async()=>{
       if(!eventRef){status("Firebase event feed is not connected.",true);return}
-      const uid=getAdminUid();if(!uid){status("Sign in with the authorized admin account using the Cloud Save panel first.",true);return}
+      const uid=getAdminUid();if(!uid){status("Waiting for your Firebase sign-in. Refresh and try again.",true);return}
       const now=Date.now();
       const ev={id:"abuse-"+now+"-"+Math.random().toString(36).slice(2,9),status:"active",startAt:now,endAt:now+EVENT_DURATION,
         announcement:($id("abuseAnnouncement").value.trim()||"THE ADMIN HAS ARRIVED!").slice(0,100),
@@ -3236,7 +3238,6 @@ Rarest: ${m.best||"Nothing yet"}`;
       try{await eventRef.set(ev);status("Global Admin Abuse started for 15 minutes!")}catch(e){status("Could not start event. Check the Firebase admin UID rules. "+e.message,true)}
     });
     $id("abuseStop").addEventListener("click",async()=>{
-      if(!getAdminUid()){status("Only the authorized admin account can end this event.",true);return}
       try{await eventRef.update({status:"ended",endedAt:firebase.database.ServerValue.TIMESTAMP});status("Global event ended for everyone.")}catch(e){status("Could not end event. Check the Firebase admin UID rules. "+e.message,true)}
     });
   }
